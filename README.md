@@ -2,6 +2,13 @@
 
 A pomodoro where you can join pods with your friends and collaborate freely.
 
+Features:
+
+- Pomodoro timer
+- Customizable timer settings and duration
+- Host/join pods with friends
+- Dark/light theme
+
 ## Dependenccies
 
 Install python dependencies and create virtual environment:

@@ -1,7 +1,22 @@
 [project]
 name = "pomopod"
 version = "0.1.0"
-description = "Add your description here"
+description = "A pomodoro where you can join pods with your friends and collaborate freely."
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+  "pydantic>=2.12.5",
+  "rich>=14.3.3",
+  "typer>=0.24.1",
+  "websockets>=16.0",
+]
+
+[project.scripts]
+pomopod = "pomopod.cli:app"
+
+[tool.uv]
+package = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pomopod*"]
