@@ -57,6 +57,9 @@ def _save_config(config: Config) -> None:
 
 
 def get_spaces() -> dict[str, Space]:
+  """
+  Get all the space details.
+  """
   config = _load_config()
   return config.spaces
 
@@ -75,11 +78,18 @@ def get_space(name: str) -> Space:
 
 
 def get_space_names() -> list[str]:
+  """
+  Get all the space names.
+  """
   config = _load_config()
   return list(config.spaces.keys())
 
 
 def get_active_space() -> Space:
+  """
+  Get the active space.
+  Raises `ActiveSpaceNotSet` if active the space does not exist.
+  """
   config = _load_config()
 
   active_space_name = state.get_active_space_name()
@@ -106,7 +116,7 @@ def edit_space(name: str, updates: dict) -> Space:
   """
   Add a space to the config.
   Raises `SpaceDoesNotExist` if the space does not exist.
-  And raises `SpaceAlreadyExist` if the space already exists.
+  And raises `SpaceAlreadyExist` if the space with the new name already exists.
   """
   config = _load_config()
 
@@ -116,7 +126,7 @@ def edit_space(name: str, updates: dict) -> Space:
   if updates["name"] in spaces:
     raise SpaceAlreadyExists
 
-  current = config.spaces[name]
+  current = config.spaces.pop(name)
   updated_data = current.model_dump()
   updated_data.update(updates)
 

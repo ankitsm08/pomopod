@@ -37,15 +37,9 @@ def notify_session_stop() -> None:
   )
 
 
-def notify_session_pause(session_type: str) -> None:
+def notify_session_pause_resume(session_type: str, paused: bool = False) -> None:
+  msg_string = "paused" if paused else "resumed"
   _notify(
-    title="Pomopod Paused",
-    message=f"{session_type} session paused.",
-  )
-
-
-def notify_session_resume(session_type: str) -> None:
-  _notify(
-    title="Pomopod Resumed",
-    message=f"{session_type} session resumed.",
+    title=f"Pomopod {msg_string.title()}",
+    message=f"{session_type} session {msg_string.lower()}.",
   )
