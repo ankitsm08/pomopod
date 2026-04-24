@@ -105,7 +105,7 @@ class TimerState(BaseModel):
   def _now(self) -> int:
     return int(round(time.time() * 1000))
 
-  def _get_active_space_duration(self, space: Space):
+  def _get_active_space_duration(self, space: Space) -> int:
     if self.current_type == TimerStateType.FOCUS:
       return space.focus_duration
     elif self.current_type == TimerStateType.SHORT_BREAK:
