@@ -18,7 +18,9 @@ def _ensure_config_dir() -> None:
 
 def is_config_correct() -> bool:
   try:
-    _load_config()
+    config = _load_config()
+    if len(config.spaces) == 0:
+      return False
   except ValidationError:
     return False
   return True
