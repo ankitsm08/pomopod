@@ -6,47 +6,60 @@ from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
 
-from pomopod.core import config, state
+from pomopod.client import client
 from pomopod.core.models import Space
+from pomopod.err.client import handle_error
 
 app = typer.Typer()
 console = Console()
 
 
 def complete_spaces(incomplete: str) -> list[str]:
-  return [p for p in config.get_space_names() if p.startswith(incomplete)]
+  if not client.is_running():
+    return []
+  try:
+    return [p for p in client.list_space_names() if p.startswith(incomplete)]
+  except Exception:
+    return []
 
 
 @app.command(name="ls")
 def list_spaces():
   """List all pomodoro spaces with details."""
-  spaces = config.get_spaces()
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
+    return
+  try:
+    spaces = client.list_spaces()
 
-  headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Color")
-  table = Table(*headers, title="Spaces")
+    headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Color")
+    table = Table(*headers, title="Spaces")
 
-  for name, space in spaces.items():
-    table.add_row(
-      name,
-      str(space.focus_duration),
-      str(space.short_break_duration),
-      str(space.long_break_duration),
-      str(space.sessions_until_long_break),
-      str(space.color),
-    )
+    for name, space in spaces.items():
+      table.add_row(
+        name,
+        str(space.focus_duration),
+        str(space.short_break_duration),
+        str(space.long_break_duration),
+        str(space.sessions_before_long_break),
+        str(space.color),
+      )
 
-  console.print(table)
+    console.print(table)
+  except Exception as e:
+    handle_error(e)
 
 
-def _print_space(name: str, space: Space):
-  table = Table(title=f"{name}")
+def _print_space(space: Space):
+  """Print the pomodoro space details."""
+  table = Table(title=f"{space.name}")
   table.add_column("Setting", style="cyan")
   table.add_column("Value", style="green")
 
   table.add_row("Focus", str(space.focus_duration))
   table.add_row("Short Break", str(space.short_break_duration))
   table.add_row("Long Break", str(space.long_break_duration))
-  table.add_row("Sessoins", str(space.sessions_until_long_break))
+  table.add_row("Sessoins", str(space.sessions_before_long_break))
   table.add_row("Color", space.color)
 
   console.print(table)
@@ -55,31 +68,14 @@ def _print_space(name: str, space: Space):
 @app.command(name="show")
 def show_active_space():
   """Show the active pomodoro space details."""
-  name = state.get_active_space_name()
-  space = config.get_active_space()
-
-  if space is None or name is None:
-    rprint("No active space")
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  _print_space(name, space)
-
-
-@app.command(name="get")
-def show_space(
-  name: str = typer.Argument(
-    ...,
-    help="Name of the pomodoro space",
-  ),
-):
-  """Show the pomodoro space details."""
-  space = config.get_spaces().get(name)
-
-  if space is None:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-    return
-
-  _print_space(name, space)
+  try:
+    space = client.get_active_space()
+    _print_space(space)
+  except Exception as e:
+    handle_error(e)
 
 
 @app.command(name="set")
@@ -91,16 +87,19 @@ def set_space(
   ),
 ):
   """Set the active pomodoro space."""
-  space = state.set_active_space(name)
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-  else:
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
+    return
+  try:
+    client.set_active_space(name)
     rprint(f'Active space set to [bold green]"{name}"[/bold green]')
+  except Exception as e:
+    handle_error(e)
 
 
 def _validate_space(space_dict: dict) -> Space:
   try:
-    return config.Space.model_validate(space_dict)
+    return Space.model_validate(space_dict)
   except ValidationError as e:
     rprint("[bold red]\nInvalid space\n[/bold red]")
     rprint(f"Errors: {e.error_count()}")
@@ -115,27 +114,27 @@ def add_space(
     ...,
     help="Name of the new pomodoro space",
   ),
-  focus: int | None = typer.Option(
+  focus: Optional[int] = typer.Option(
     None,
     "--focus",
     help="Focus duration",
   ),
-  short_break: int | None = typer.Option(
+  short_break: Optional[int] = typer.Option(
     None,
     "--short-break",
     help="Short break duration",
   ),
-  long_break: int | None = typer.Option(
+  long_break: Optional[int] = typer.Option(
     None,
     "--long-break",
     help="Long break duration",
   ),
-  sessions: int | None = typer.Option(
+  sessions: Optional[int] = typer.Option(
     None,
     "--sessions",
-    help="Sessions until long break",
+    help="Sessions before long break",
   ),
-  color: str | None = typer.Option(
+  color: Optional[str] = typer.Option(
     None,
     "--color",
     help="Base color",
@@ -147,52 +146,56 @@ def add_space(
   If options are provided, creates space non-interactively.
   Otherwise, prompts for each value.
   """
-  if name in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
+  try:
+    existing_names = client.list_space_names()
+    if name in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] already exists')
+      return
 
-  if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
-    space_dict = _add_space_non_interactive(focus, short_break, long_break, sessions, color)
-  else:
-    space_dict = _add_space_interactive()
+    if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
+      space_dict = _add_space_non_interactive(name, focus, short_break, long_break, sessions, color)
+    else:
+      space_dict = _add_space_interactive(name)
 
-  space = _validate_space(space_dict)
-  space = config.add_space(name, space)
-
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-  else:
+    space = _validate_space(space_dict)
+    client.add_space(space)
     rprint(f'Space [bold green]"{name}"[/bold green] added')
+  except Exception as e:
+    handle_error(e)
 
 
 def _add_space_non_interactive(
-  focus: int | None,
-  short_break: int | None,
-  long_break: int | None,
-  sessions: int | None,
-  color: str | None,
+  name: str,
+  focus: Optional[int],
+  short_break: Optional[int],
+  long_break: Optional[int],
+  sessions: Optional[int],
+  color: Optional[str],
 ) -> dict:
   """Non-interactive space creation with defaults."""
-
-  spaces = config.get_spaces()
-  defaults = spaces.get("work", Space())
+  defaults = Space()
 
   return {
+    "name": name,
     "focus_duration": (focus if focus is not None else defaults.focus_duration),
     "short_break_duration": (
       short_break if short_break is not None else defaults.short_break_duration
     ),
     "long_break_duration": (long_break if long_break is not None else defaults.long_break_duration),
-    "sessions_until_long_break": (
-      sessions if sessions is not None else defaults.sessions_until_long_break
+    "sessions_before_long_break": (
+      sessions if sessions is not None else defaults.sessions_before_long_break
     ),
     "color": (color if color is not None else defaults.color),
   }
 
 
-def _add_space_interactive() -> dict:
+def _add_space_interactive(name: str) -> dict:
   """Interactive space creation."""
 
+  rprint(f'Creating space [bold green]"{name}"[/bold green]:\n')
   rprint("Enter the durations in minutes.")
   focus = typer.prompt("Focus duration", type=int)
   short_break = typer.prompt("Short break duration", type=int)
@@ -201,10 +204,11 @@ def _add_space_interactive() -> dict:
   color = typer.prompt("Color", type=str)
 
   return {
+    "name": name,
     "focus_duration": focus,
     "short_break_duration": short_break,
     "long_break_duration": long_break,
-    "sessions_until_long_break": sessions,
+    "sessions_before_long_break": sessions,
     "color": color,
   }
 
@@ -216,27 +220,32 @@ def edit_space(
     help="Name of the pomodoro space",
     autocompletion=complete_spaces,
   ),
-  focus: int | None = typer.Option(
+  new_name: str = typer.Option(
+    None,
+    "--new-name",
+    help="New name of the space",
+  ),
+  focus: Optional[int] = typer.Option(
     None,
     "--focus",
     help="Focus duration",
   ),
-  short_break: int | None = typer.Option(
+  short_break: Optional[int] = typer.Option(
     None,
     "--short-break",
     help="Short break duration",
   ),
-  long_break: int | None = typer.Option(
+  long_break: Optional[int] = typer.Option(
     None,
     "--long-break",
     help="Long break duration",
   ),
-  sessions: int | None = typer.Option(
+  sessions: Optional[int] = typer.Option(
     None,
     "--sessions",
-    help="Sessions until long break",
+    help="Sessions before long break",
   ),
-  color: str | None = typer.Option(
+  color: Optional[str] = typer.Option(
     None,
     "--color",
     help="Base color",
@@ -248,66 +257,78 @@ def edit_space(
   If options are provided, updates only those values.
   Otherwise, shows current values and prompts for new ones.
   """
-  space = config.get_spaces().get(name)
-
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
+  try:
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
+    if new_name and new_name in existing_names:
+      rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
+      return
 
-  if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
-    space_dict = _edit_space_non_interactive(space, focus, short_break, long_break, sessions, color)
-  else:
-    space_dict = _edit_space_interactive(name, space)
+    space = client.get_space(name)
 
-  space = _validate_space(space_dict)
-  space = config.edit_space(name, space.model_dump())
+    if any(v is not None for v in [new_name, focus, short_break, long_break, sessions, color]):
+      space_dict = _edit_space_non_interactive(
+        space, new_name, focus, short_break, long_break, sessions, color
+      )
+    else:
+      space_dict = _edit_space_interactive(space)
 
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-  else:
+    updated_space = _validate_space(space_dict)
+    client.edit_space(name, updated_space)
     rprint(f'Space [bold green]"{name}"[/bold green] edited')
+  except Exception as e:
+    handle_error(e)
 
 
 def _edit_space_non_interactive(
   space: Space,
-  focus: int | None,
-  short_break: int | None,
-  long_break: int | None,
-  sessions: int | None,
-  color: str | None,
+  name: Optional[str],
+  focus: Optional[int],
+  short_break: Optional[int],
+  long_break: Optional[int],
+  sessions: Optional[int],
+  color: Optional[str],
 ) -> dict:
   """Non-interactive space creation with defaults."""
 
   return {
+    "name": (name if name is not None else space.name),
     "focus_duration": (focus if focus is not None else space.focus_duration),
     "short_break_duration": (
       short_break if short_break is not None else space.short_break_duration
     ),
     "long_break_duration": (long_break if long_break is not None else space.long_break_duration),
-    "sessions_until_long_break": (
-      sessions if sessions is not None else space.sessions_until_long_break
+    "sessions_before_long_break": (
+      sessions if sessions is not None else space.sessions_before_long_break
     ),
     "color": (color if color is not None else space.color),
   }
 
 
-def _edit_space_interactive(name: str, space: Space) -> dict:
+def _edit_space_interactive(space: Space) -> dict:
   """Interactive space editing."""
 
-  show_space(name)
+  _print_space(space)
 
-  rprint("\nEnter the durations in minutes.")
+  rprint("\nEnter the durations in minutes. Leave empty to keep the current value.")
+  name = typer.prompt("Name", default=space.name, type=str)
   focus = typer.prompt("Focus duration", default=space.focus_duration, type=int)
   short_break = typer.prompt("Short break duration", default=space.short_break_duration, type=int)
   long_break = typer.prompt("Long break duration", default=space.long_break_duration, type=int)
-  sessions = typer.prompt("Sessions", default=space.sessions_until_long_break, type=int)
+  sessions = typer.prompt("Sessions", default=space.sessions_before_long_break, type=int)
   color = typer.prompt("Color", default=space.color, type=str)
 
   return {
+    "name": name,
     "focus_duration": focus,
     "short_break_duration": short_break,
     "long_break_duration": long_break,
-    "sessions_until_long_break": sessions,
+    "sessions_before_long_break": sessions,
     "color": color,
   }
 
@@ -327,23 +348,27 @@ def remove_space(
   ),
 ):
   """Remove a pomodoro space."""
-  if name not in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
+  try:
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
 
-  if name == state.get_active_space_name():
-    rprint(f'Cannot delete active space [bold red]"{name}"[/bold red]')
-    return
+    active_space_name = client.get_active_space_name()
+    if name == active_space_name:
+      rprint(f'Cannot delete active space [bold red]"{name}"[/bold red]')
+      return
 
-  if not force:
-    typer.confirm(f'Delete the "{name}" space?', abort=True)
+    if not force:
+      typer.confirm(f'Delete the "{name}" space?', abort=True)
 
-  space = config.remove_space(name)
-
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-  else:
-    rprint(f'Space [bold green]"{name}"[/bold green] removed permanantly')
+    client.remove_space(name)
+    rprint(f'Space [bold green]"{name}"[/bold green] removed permanently')
+  except Exception as e:
+    handle_error(e)
 
 
 @app.command(name="rename")
@@ -356,39 +381,37 @@ def rename_space(
   new_name: Optional[str] = typer.Option(
     None,
     "--new-name",
-    "-to",
+    "-n",
     help="New name of the space",
   ),
 ):
   """Rename a pomodoro space."""
-  if name not in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
+  try:
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
 
-  if not new_name:
-    new_name_input = typer.prompt(f'New name for "{name}" space')
-    new_name = str(new_name_input)
+    if not new_name:
+      new_name_input = typer.prompt(f'New name for "{name}" space')
+      new_name = str(new_name_input)
 
-  if new_name in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-    return
+    if new_name in existing_names:
+      rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
+      return
 
-  rename_active_space = name == state.get_active_space_name()
+    active_space_name = client.get_active_space_name()
+    rename_active = name == active_space_name
 
-  space = config.remove_space(name)
-
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-    return
-
-  space = config.add_space(new_name, space)
-
-  if not space:
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-  else:
+    client.rename_space(name, new_name)
     rprint(
       f'Space [bold green]"{name}"[/bold green] renamed to [bold green]"{new_name}"[/bold green]'
     )
 
-  if rename_active_space:
-    set_space(new_name)
+    if rename_active:
+      set_space(new_name)
+  except Exception as e:
+    handle_error(e)
