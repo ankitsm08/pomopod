@@ -2,12 +2,13 @@ from typing import Optional
 
 from fastapi import Body, FastAPI, HTTPException, Path, Query
 from fastapi.concurrency import asynccontextmanager
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from scalar_fastapi import get_scalar_api_reference
 
 from pomopod.core import config
 from pomopod.core import state as state_core
-from pomopod.core.models import DaemonSettings, NotificationSettings, Space, TimerState
+from pomopod.core.config import CONFIG_FILE
+from pomopod.core.models import DaemonSettings, Health, NotificationSettings, Space, TimerState
 from pomopod.err.config import SpaceAlreadyExists, SpaceDoesNotExist
 from pomopod.err.state import ActiveSpaceNotSet
 from pomopod.server import notifications as notif
@@ -87,10 +88,6 @@ def _require_active_space() -> tuple[str, Space]:
     raise HTTPException(status_code=404, detail="No active space")
 
   return space_name, space
-
-
-class Health(BaseModel):
-  status: str
 
 
 @app.get(
@@ -553,3 +550,25 @@ async def update_notification_settings(
 ):
   notification_settings = config.update_notification_settings(enable)
   return notification_settings
+
+
+@app.post(
+  "/config/init",
+  tags=["Config"],
+  summary="Initialize default configuration",
+  description=(
+    "Creates a default Pomopod configuration file at the user's config directory "
+    f"({CONFIG_FILE.absolute().as_posix().replace(CONFIG_FILE.home().as_posix(), '~')}). Overwrites existing config if present."
+  ),
+  responses={
+    200: {"description": "Config initialized successfully"},
+    500: {"description": "Failed to initialize config"},
+  },
+)
+async def init_config():
+  try:
+    conf = config._get_default_config()
+    config._save_config(conf)
+    return {"message": "Config initialized successfully"}
+  except Exception as e:
+    raise HTTPException(500, f"Failed to initialize config: {str(e)}")

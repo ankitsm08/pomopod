@@ -7,6 +7,10 @@ from pydantic import BaseModel, BeforeValidator, Field
 from pomopod.core.constants import DEFAULT_ACTIVE_SPACE
 
 
+class Health(BaseModel):
+  status: str
+
+
 class CatppuccinColor(str, Enum):
   ROSEWATER = "rosewater"
   FLAMINGO = "flamingo"
@@ -143,6 +147,8 @@ class TimerState(BaseModel):
 
   def reset_time(self, space) -> None:
     """Reset the timer time for current session."""
+    self.space_name = space.name
+    self.sessions_before_long_break = space.sessions_before_long_break
     self.remaining_time_ms = self._get_active_space_duration(space) * 60 * 1000
     self.end_timestamp_ms = self._now() + self.remaining_time_ms
 

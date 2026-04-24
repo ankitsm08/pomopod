@@ -6,38 +6,48 @@ from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
 
-from pomopod.core import config, state
+from pomopod.client import client
 from pomopod.core.models import Space
-from pomopod.err.config import SpaceAlreadyExists, SpaceDoesNotExist
-from pomopod.err.state import ActiveSpaceNotSet
+from pomopod.err.client import handle_error
 
 app = typer.Typer()
 console = Console()
 
 
 def complete_spaces(incomplete: str) -> list[str]:
-  return [p for p in config.get_space_names() if p.startswith(incomplete)]
+  if not client.is_running():
+    return []
+  try:
+    return [p for p in client.list_space_names() if p.startswith(incomplete)]
+  except Exception:
+    return []
 
 
 @app.command(name="ls")
 def list_spaces():
   """List all pomodoro spaces with details."""
-  spaces = config.get_spaces()
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
+    return
+  try:
+    spaces = client.list_spaces()
 
-  headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Color")
-  table = Table(*headers, title="Spaces")
+    headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Color")
+    table = Table(*headers, title="Spaces")
 
-  for name, space in spaces.items():
-    table.add_row(
-      name,
-      str(space.focus_duration),
-      str(space.short_break_duration),
-      str(space.long_break_duration),
-      str(space.sessions_before_long_break),
-      str(space.color),
-    )
+    for name, space in spaces.items():
+      table.add_row(
+        name,
+        str(space.focus_duration),
+        str(space.short_break_duration),
+        str(space.long_break_duration),
+        str(space.sessions_before_long_break),
+        str(space.color),
+      )
 
-  console.print(table)
+    console.print(table)
+  except Exception as e:
+    handle_error(e)
 
 
 def _print_space(space: Space):
@@ -58,15 +68,14 @@ def _print_space(space: Space):
 @app.command(name="show")
 def show_active_space():
   """Show the active pomodoro space details."""
-  try:
-    space = config.get_active_space()
-  except ActiveSpaceNotSet:
-    rprint("[bold red]No active space found.[/bold red]")
-    rprint("Please set an active space first using the command below:\n")
-    rprint("[italic]pomopod space set <space_name>[/italic]")
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  _print_space(space)
+  try:
+    space = client.get_active_space()
+    _print_space(space)
+  except Exception as e:
+    handle_error(e)
 
 
 @app.command(name="set")
@@ -78,18 +87,19 @@ def set_space(
   ),
 ):
   """Set the active pomodoro space."""
-  try:
-    state.set_active_space(name)
-  except SpaceDoesNotExist:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  rprint(f'Active space set to [bold green]"{name}"[/bold green]')
+  try:
+    client.set_active_space(name)
+    rprint(f'Active space set to [bold green]"{name}"[/bold green]')
+  except Exception as e:
+    handle_error(e)
 
 
 def _validate_space(space_dict: dict) -> Space:
   try:
-    return config.Space.model_validate(space_dict)
+    return Space.model_validate(space_dict)
   except ValidationError as e:
     rprint("[bold red]\nInvalid space\n[/bold red]")
     rprint(f"Errors: {e.error_count()}")
@@ -136,23 +146,25 @@ def add_space(
   If options are provided, creates space non-interactively.
   Otherwise, prompts for each value.
   """
-  if name in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
-    space_dict = _add_space_non_interactive(name, focus, short_break, long_break, sessions, color)
-  else:
-    space_dict = _add_space_interactive(name)
-
-  space = _validate_space(space_dict)
   try:
-    config.add_space(name, space)
-  except SpaceAlreadyExists:
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-    return
+    existing_names = client.list_space_names()
+    if name in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] already exists')
+      return
 
-  rprint(f'Space [bold green]"{name}"[/bold green] added')
+    if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
+      space_dict = _add_space_non_interactive(name, focus, short_break, long_break, sessions, color)
+    else:
+      space_dict = _add_space_interactive(name)
+
+    space = _validate_space(space_dict)
+    client.add_space(space)
+    rprint(f'Space [bold green]"{name}"[/bold green] added')
+  except Exception as e:
+    handle_error(e)
 
 
 def _add_space_non_interactive(
@@ -245,35 +257,32 @@ def edit_space(
   If options are provided, updates only those values.
   Otherwise, shows current values and prompts for new ones.
   """
-  spaces = config.get_space_names()
-
-  if name not in spaces:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-  if new_name in spaces:
-    rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
-    return
-
-  space = config.get_spaces()[name]
-
-  if any(v is not None for v in [new_name, focus, short_break, long_break, sessions, color]):
-    space_dict = _edit_space_non_interactive(
-      space, new_name, focus, short_break, long_break, sessions, color
-    )
-  else:
-    space_dict = _edit_space_interactive(space)
-
-  space = _validate_space(space_dict)
   try:
-    config.edit_space(name, space.model_dump())
-  except SpaceDoesNotExist:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-    return
-  except SpaceAlreadyExists:
-    rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
-    pass
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
+    if new_name and new_name in existing_names:
+      rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
+      return
 
-  rprint(f'Space [bold green]"{name}"[/bold green] edited')
+    space = client.get_space(name)
+
+    if any(v is not None for v in [new_name, focus, short_break, long_break, sessions, color]):
+      space_dict = _edit_space_non_interactive(
+        space, new_name, focus, short_break, long_break, sessions, color
+      )
+    else:
+      space_dict = _edit_space_interactive(space)
+
+    updated_space = _validate_space(space_dict)
+    client.edit_space(name, updated_space)
+    rprint(f'Space [bold green]"{name}"[/bold green] edited')
+  except Exception as e:
+    handle_error(e)
 
 
 def _edit_space_non_interactive(
@@ -339,24 +348,27 @@ def remove_space(
   ),
 ):
   """Remove a pomodoro space."""
-  if name not in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  if name == state.get_active_space_name():
-    rprint(f'Cannot delete active space [bold red]"{name}"[/bold red]')
-    return
-
-  if not force:
-    typer.confirm(f'Delete the "{name}" space?', abort=True)
-
   try:
-    config.remove_space(name)
-  except SpaceDoesNotExist:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-    return
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
 
-  rprint(f'Space [bold green]"{name}"[/bold green] removed permanantly')
+    active_space_name = client.get_active_space_name()
+    if name == active_space_name:
+      rprint(f'Cannot delete active space [bold red]"{name}"[/bold red]')
+      return
+
+    if not force:
+      typer.confirm(f'Delete the "{name}" space?', abort=True)
+
+    client.remove_space(name)
+    rprint(f'Space [bold green]"{name}"[/bold green] removed permanently')
+  except Exception as e:
+    handle_error(e)
 
 
 @app.command(name="rename")
@@ -374,37 +386,32 @@ def rename_space(
   ),
 ):
   """Rename a pomodoro space."""
-  if name not in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+  if not client.is_running():
+    rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
-
-  if not new_name:
-    new_name_input = typer.prompt(f'New name for "{name}" space')
-    new_name = str(new_name_input)
-
-  if new_name in config.get_space_names():
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-    return
-
-  if new_name == state.get_active_space_name():
-    rprint(f'Cannot rename to active space [bold red]"{name}"[/bold red]')
-    return
-
-  rename_active_space = name == state.get_active_space_name()
-
   try:
-    space = config.remove_space(name)
-    config.add_space(new_name, space)
-  except SpaceDoesNotExist:
-    rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
-    return
-  except SpaceAlreadyExists:
-    rprint(f'Space [bold red]"{name}"[/bold red] already exists')
-    return
+    existing_names = client.list_space_names()
+    if name not in existing_names:
+      rprint(f'Space [bold red]"{name}"[/bold red] does not exist')
+      return
 
-  rprint(
-    f'Space [bold green]"{name}"[/bold green] renamed to [bold green]"{new_name}"[/bold green]'
-  )
+    if not new_name:
+      new_name_input = typer.prompt(f'New name for "{name}" space')
+      new_name = str(new_name_input)
 
-  if rename_active_space:
-    set_space(new_name)
+    if new_name in existing_names:
+      rprint(f'Space [bold red]"{new_name}"[/bold red] already exists')
+      return
+
+    active_space_name = client.get_active_space_name()
+    rename_active = name == active_space_name
+
+    client.rename_space(name, new_name)
+    rprint(
+      f'Space [bold green]"{name}"[/bold green] renamed to [bold green]"{new_name}"[/bold green]'
+    )
+
+    if rename_active:
+      set_space(new_name)
+  except Exception as e:
+    handle_error(e)
