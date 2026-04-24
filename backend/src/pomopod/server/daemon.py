@@ -76,8 +76,8 @@ def _tick_callback(space: Space):
     return
 
   timer_state.cycle_session(space)
-  notif.notify_session_start(timer_state.current_type.value)
   state_server.save_timer_state(timer_state)
+  notif.notify_session_start(timer_state.current_type.value)
 
 
 def _require_active_space() -> tuple[str, Space]:
@@ -143,8 +143,8 @@ async def start():
   try:
     space_name, space = _require_active_space()
     timer_state.start(space_name, space)
-    notif.notify_session_start(timer_state.current_type.value)
     state_server.save_timer_state(timer_state)
+    notif.notify_session_start(timer_state.current_type.value)
     return timer_state
 
   except ActiveSpaceNotSet:
@@ -166,8 +166,8 @@ async def pause_resume():
   else:
     timer_state.pause()
 
-  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   state_server.save_timer_state(timer_state)
+  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   return timer_state
 
 
@@ -183,8 +183,8 @@ async def pause_resume():
 async def pause():
   timer_state.pause()
 
-  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   state_server.save_timer_state(timer_state)
+  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   return timer_state
 
 
@@ -200,8 +200,8 @@ async def pause():
 async def resume():
   timer_state.resume()
 
-  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   state_server.save_timer_state(timer_state)
+  notif.notify_session_pause_resume(timer_state.current_type.value, paused=timer_state.is_paused)
   return timer_state
 
 
@@ -254,8 +254,8 @@ async def reset_count():
 )
 async def stop():
   timer_state.stop()
-  notif.notify_session_stop()
   state_server.save_timer_state(timer_state)
+  notif.notify_session_stop()
   return timer_state
 
 
