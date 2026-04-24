@@ -4,10 +4,10 @@ import { toast } from "sonner";
 export type PomodoroSessionId = "focus" | "shortBreak" | "longBreak";
 
 // Lower this during testing if you want the toast to appear sooner.
-export const POMODORO_NOTIFICATION_TRIGGER_SECONDS = 50;
+export const POMODORO_NOTIFICATION_TRIGGER_SECONDS = 5;
 
 const sessionEndingCopy: Record<PomodoroSessionId, string> = {
-  focus: "Focus ends in",
+  focus: "Focus Mode ends in",
   shortBreak: "Short break ends in",
   longBreak: "Long break ends in",
 };

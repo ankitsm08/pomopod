@@ -17,6 +17,7 @@ import {
   Play,
   RotateCcw,
   Settings2,
+  Square,
   SunMedium,
   UserRound,
 } from "lucide-react";
@@ -608,7 +609,8 @@ export function PomodoroWorkspace() {
                       }}
                     >
                       {isRunning ? <Pause /> : <Play />}
-                      {isRunning ? "Pause" : "Start"}
+                      {isRunning ? "Pause" : "Start"}{" "}
+                      {/* Change naming for the first time show start pause then pause/play  */}
                     </Button>
 
                     <Button
@@ -623,6 +625,21 @@ export function PomodoroWorkspace() {
                     >
                       <RotateCcw />
                       Reset
+                    </Button>
+
+                    {/* Stop button  */}
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full px-6"
+                      onClick={() => {
+                        setIsRunning(false);
+                        timeLeftRef.current = currentSessionLengthInMs;
+                        setTimeLeft(currentSessionLengthInMs);
+                      }}
+                    >
+                      <Square />
+                      Stop
                     </Button>
                   </div>
                 </div>
