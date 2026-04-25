@@ -1,10 +1,8 @@
 import { createElement, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-export type PomodoroSessionId = "focus" | "shortBreak" | "longBreak";
-
-// Lower this during testing if you want the toast to appear sooner.
-export const POMODORO_NOTIFICATION_TRIGGER_SECONDS = 5;
+import { POMODORO_NOTIFICATION_TRIGGER_SECONDS } from "@/lib/constants";
+import type { PomodoroSessionId } from "@/lib/types";
 
 const sessionEndingCopy: Record<PomodoroSessionId, string> = {
   focus: "Focus Mode ends in",
@@ -25,7 +23,7 @@ function PomodoroNotificationIndicator() {
       className: "relative flex size-3 items-center justify-center",
     },
     createElement("span", {
-      className: "absolute size-3 rounded-full bg-emerald-400/35 animate-ping",
+      className: "absolute size-3 animate-ping rounded-full bg-emerald-400/35",
     }),
     createElement("span", {
       className:

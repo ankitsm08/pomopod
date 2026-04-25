@@ -1,5 +1,5 @@
 import "./App.css";
-import { PomodoroWorkspace } from "@/components/pomodoro/pomodoro-workspace";
+import { PomodoroWorkspace } from "@/features/pomodoro-workspace";
 
 function App() {
   return <PomodoroWorkspace />;
