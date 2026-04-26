@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import Body, FastAPI, HTTPException, Path, Query
 from fastapi.concurrency import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from scalar_fastapi import get_scalar_api_reference
 
@@ -64,6 +65,14 @@ app = FastAPI(
       "description": "Endpoints for querying and updating daemon runtime settings and notification preferences",
     },
   ],
+)
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_credentials=False,
+  allow_methods=["*"],
+  allow_headers=["*"],
 )
 
 
