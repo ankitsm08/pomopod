@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Optional
-
-from pydantic import ValidationError
+from typing import TYPE_CHECKING, Optional
 
 from pomopod.core import state
-from pomopod.core.models import Config, DaemonSettings, NotificationSettings, Space
 from pomopod.err.config import SpaceAlreadyExists, SpaceDoesNotExist
+
+if TYPE_CHECKING:
+  from pomopod.core.models import Config, DaemonSettings, NotificationSettings, Space
 
 CONFIG_DIR = Path.home() / ".config" / "pomopod"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -17,6 +19,8 @@ def _ensure_config_dir() -> None:
 
 
 def is_config_correct() -> bool:
+  from pydantic import ValidationError
+
   try:
     config = _load_config()
     if len(config.spaces) == 0:
@@ -27,6 +31,8 @@ def is_config_correct() -> bool:
 
 
 def _get_default_config() -> Config:
+  from pomopod.core.models import Config
+
   return Config()
 
 
@@ -35,6 +41,10 @@ def _load_config() -> Config:
   Load and return the config file.
   Raises `ValidationError` if the config file is invalid.
   """
+  from pydantic import ValidationError
+
+  from pomopod.core.models import Config
+
   if not CONFIG_FILE.exists():
     _ensure_config_dir()
     config = _get_default_config()
@@ -164,6 +174,9 @@ def update_daemon_settings(
   Update the daemon settings.
   Raises `ValidationError` if the settings are invalid.
   """
+  from pydantic import ValidationError
+
+  from pomopod.core.models import DaemonSettings
 
   if not host and not port:
     raise ValidationError
@@ -189,6 +202,8 @@ def get_notification_settings() -> NotificationSettings:
 
 
 def update_notification_settings(enabled: bool) -> NotificationSettings:
+  from pomopod.core.models import NotificationSettings
+
   config = _load_config()
   config.notifications = NotificationSettings(enabled=enabled)
   _save_config(config)

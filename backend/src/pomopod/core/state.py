@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pomopod.core import config
-from pomopod.core.models import Space
 from pomopod.err.config import SpaceDoesNotExist
 from pomopod.err.state import ActiveSpaceNotSet
+
+if TYPE_CHECKING:
+  from pomopod.core.models import Space
 
 STATE_DIR = Path.home() / ".local" / "share" / "pomopod"
 ACTIVE_SPACE_FILE = STATE_DIR / "active_space"

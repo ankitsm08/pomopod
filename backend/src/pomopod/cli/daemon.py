@@ -1,24 +1,21 @@
-import os
-import signal
-import subprocess
-import sys
-import time
+from typer import Option, Typer
 
-import typer
-from rich import print as rprint
-from rich.console import Console
-
-from pomopod.client import client
-from pomopod.core import config
 from pomopod.core.constants import DEFAULT_DAEMON_HOST, DEFAULT_DAEMON_PORT
-from pomopod.server import state
 
-app = typer.Typer()
-console = Console()
+app = Typer(
+  name="daemon",
+  help="Manage pomodoro daemon",
+  no_args_is_help=True,
+)
 
 
 def _spawn_daemon(host: str = DEFAULT_DAEMON_HOST, port: int = DEFAULT_DAEMON_PORT):
   """Spawn daemon in background using uvicorn."""
+  import subprocess
+  import sys
+
+  from pomopod.server import state
+
   proc = subprocess.Popen(
     [
       sys.executable,
@@ -41,6 +38,11 @@ def _spawn_daemon(host: str = DEFAULT_DAEMON_HOST, port: int = DEFAULT_DAEMON_PO
 @app.command(name="run")
 def run_daemon():
   """Start the background daemon."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+  from pomopod.core import config
+
   if client.is_running():
     rprint("[yellow]Daemon already running[/yellow]")
     return
@@ -56,6 +58,12 @@ def run_daemon():
 @app.command(name="pid")
 def show_daemon_pid():
   """Show the daemon PID."""
+  import os
+
+  from rich import print as rprint
+
+  from pomopod.server import state
+
   pid = state.get_daemon_pid()
   if pid is None:
     rprint("[yellow]No daemon PID found[/yellow]")
@@ -72,8 +80,15 @@ def show_daemon_pid():
 
 
 @app.command(name="kill")
-def kill_daemon(force: bool = typer.Option(False, "--force", "-f", help="Force kill with SIGKILL")):
+def kill_daemon(force: bool = Option(False, "--force", "-f", help="Force kill with SIGKILL")):
   """Kill the background daemon."""
+  import os
+  import signal
+
+  from rich import print as rprint
+
+  from pomopod.server import state
+
   pid = state.get_daemon_pid()
   if pid is None:
     rprint("[yellow]No daemon PID found[/yellow]")
@@ -96,9 +111,16 @@ def kill_daemon(force: bool = typer.Option(False, "--force", "-f", help="Force k
 
 @app.command(name="restart")
 def restart_daemon(
-  force: bool = typer.Option(False, "--force", "-f", help="Force kill with SIGKILL"),
+  force: bool = Option(False, "--force", "-f", help="Force kill with SIGKILL"),
 ):
   """Restart the background daemon."""
+  import os
+  import time
+
+  from rich import print as rprint
+
+  from pomopod.server import state
+
   pid = state.get_daemon_pid()
   if pid is None:
     rprint("[yellow]No daemon PID found[/yellow]")

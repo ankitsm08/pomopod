@@ -1,22 +1,23 @@
 from typing import Optional
 
-import typer
-from rich import print as rprint
-from rich.console import Console
-from rich.table import Table
+from typer import Option, Typer
 
-from pomopod.client import client
 from pomopod.err.client import handle_error
 
-daemon = typer.Typer()
-notification = typer.Typer()
-app = typer.Typer()
-console = Console()
+app = Typer(
+  name="config",
+  help="Manage pomodoro config",
+  no_args_is_help=True,
+)
 
 
 @app.command(name="init")
 def init_configuration():
   """Initializes pomopod configuration with default values."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -30,6 +31,12 @@ def init_configuration():
 @app.command(name="show")
 def show_configuration():
   """Show all pomopod configuration."""
+  from rich import print as rprint
+  from rich.console import Console
+  from rich.table import Table
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -47,6 +54,7 @@ def show_configuration():
     table.add_row("Daemon Port", str(daemon_settings.port))
     table.add_row("Notifications", "Enabled" if notification_settings.enabled else "Disabled")
 
+    console = Console()
     console.print(table)
   except Exception as e:
     handle_error(e)
@@ -54,13 +62,13 @@ def show_configuration():
 
 @app.command(name="daemon")
 def set_daemon_settings(
-  host: Optional[str] = typer.Option(
+  host: Optional[str] = Option(
     None,
     "--host",
     "-h",
     help="Daemon host",
   ),
-  port: Optional[int] = typer.Option(
+  port: Optional[int] = Option(
     None,
     "--port",
     "-p",
@@ -68,6 +76,10 @@ def set_daemon_settings(
   ),
 ):
   """Set daemon settings."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -80,7 +92,7 @@ def set_daemon_settings(
 
 @app.command(name="notif")
 def set_notification_settings(
-  enable: Optional[bool] = typer.Option(
+  enable: Optional[bool] = Option(
     None,
     "--enable/--disable",
     "--yes/--no",
@@ -88,6 +100,10 @@ def set_notification_settings(
   ),
 ):
   """Toggle notification settings."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return

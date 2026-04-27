@@ -1,18 +1,21 @@
-import typer
-from rich import print as rprint
-from rich.console import Console
-from rich.table import Table
+from typer import Typer
 
-from pomopod.client import client
 from pomopod.err.client import handle_error
 
-app = typer.Typer()
-console = Console()
+app = Typer(
+  name="timer",
+  help="Manage pomodoro timer",
+  no_args_is_help=True,
+)
 
 
 @app.command(name="start")
 def start_timer():
   """Start the pomodoro timer."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -27,6 +30,10 @@ def start_timer():
 @app.command(name="pause")
 def pause_timer():
   """Pause the timer."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return
@@ -41,6 +48,10 @@ def pause_timer():
 @app.command(name="resume")
 def resume_timer():
   """Resume the timer."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return
@@ -55,6 +66,10 @@ def resume_timer():
 @app.command(name="pause-resume")
 def pause_resume_timer():
   """Toggle pause/resume the timer."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return
@@ -72,6 +87,10 @@ def pause_resume_timer():
 @app.command(name="stop")
 def stop_timer():
   """Stop and reset the timer."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return
@@ -86,6 +105,12 @@ def stop_timer():
 @app.command(name="status")
 def show_status():
   """Show timer status."""
+  from rich import print as rprint
+  from rich.console import Console
+  from rich.table import Table
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -113,12 +138,17 @@ def show_status():
   seconds = (ms % 60_000) // 1000
   table.add_row("Time Left", f"{minutes:02d}:{seconds:02d}")
 
+  console = Console()
   console.print(table)
 
 
 @app.command(name="reset-time")
 def reset_time():
   """Reset the timer for current session."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return
@@ -133,6 +163,10 @@ def reset_time():
 @app.command(name="reset-session-count")
 def reset_session_count():
   """Reset the session count for current space."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
     return

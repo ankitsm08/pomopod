@@ -1,35 +1,23 @@
-import typer
+from typer import Typer
 
 from pomopod.cli.config import app as config
 from pomopod.cli.daemon import app as daemon
 from pomopod.cli.room import app as room
 from pomopod.cli.space import app as space
 from pomopod.cli.timer import app as timer
+from pomopod.startup import startup_check
 
-app = typer.Typer(help="Pomopod CLI")
+app = Typer(
+  name="pomopod",
+  help="Pomopod CLI",
+  no_args_is_help=True,
+)
 
-app.add_typer(
-  timer,
-  name="timer",
-  help="Manage pomodoro timer",
-)
-app.add_typer(
-  daemon,
-  name="daemon",
-  help="Manage pomodoro daemon",
-)
-app.add_typer(
-  space,
-  name="space",
-  help="Manage pomodoro spaces",
-)
-app.add_typer(
-  config,
-  name="config",
-  help="Manage pomodoro config",
-)
-app.add_typer(
-  room,
-  name="room",
-  help="Serve/Join pomodoro pods",
-)
+
+@app.callback()
+def startup():
+  startup_check()
+
+
+for typer in [timer, daemon, space, config, room]:
+  app.add_typer(typer)

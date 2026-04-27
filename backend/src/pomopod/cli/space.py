@@ -1,20 +1,24 @@
-from typing import Optional
+from __future__ import annotations
 
-import typer
-from pydantic import ValidationError
-from rich import print as rprint
-from rich.console import Console
-from rich.table import Table
+from typing import TYPE_CHECKING, Optional
 
-from pomopod.client import client
-from pomopod.core.models import Space
+from typer import Abort, Argument, Option, Typer, confirm, prompt
+
 from pomopod.err.client import handle_error
 
-app = typer.Typer()
-console = Console()
+if TYPE_CHECKING:
+  from pomopod.core.models import Space
+
+app = Typer(
+  name="space",
+  help="Manage pomodoro spaces",
+  no_args_is_help=True,
+)
 
 
 def complete_spaces(incomplete: str) -> list[str]:
+  from pomopod.client import client
+
   if not client.is_running():
     return []
   try:
@@ -26,6 +30,12 @@ def complete_spaces(incomplete: str) -> list[str]:
 @app.command(name="ls")
 def list_spaces():
   """List all pomodoro spaces with details."""
+  from rich import print as rprint
+  from rich.console import Console
+  from rich.table import Table
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -45,6 +55,7 @@ def list_spaces():
         str(space.color),
       )
 
+    console = Console()
     console.print(table)
   except Exception as e:
     handle_error(e)
@@ -52,6 +63,9 @@ def list_spaces():
 
 def _print_space(space: Space):
   """Print the pomodoro space details."""
+  from rich.console import Console
+  from rich.table import Table
+
   table = Table(title=f"{space.name}")
   table.add_column("Setting", style="cyan")
   table.add_column("Value", style="green")
@@ -62,12 +76,17 @@ def _print_space(space: Space):
   table.add_row("Sessoins", str(space.sessions_before_long_break))
   table.add_row("Color", space.color)
 
+  console = Console()
   console.print(table)
 
 
 @app.command(name="show")
 def show_active_space():
   """Show the active pomodoro space details."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -80,13 +99,17 @@ def show_active_space():
 
 @app.command(name="set")
 def set_space(
-  name: str = typer.Argument(
+  name: str = Argument(
     ...,
     help="Name of the pomodoro space",
     autocompletion=complete_spaces,
   ),
 ):
   """Set the active pomodoro space."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -98,6 +121,11 @@ def set_space(
 
 
 def _validate_space(space_dict: dict) -> Space:
+  from pydantic import ValidationError
+  from rich import print as rprint
+
+  from pomopod.core.models import Space
+
   try:
     return Space.model_validate(space_dict)
   except ValidationError as e:
@@ -105,36 +133,36 @@ def _validate_space(space_dict: dict) -> Space:
     rprint(f"Errors: {e.error_count()}")
     for error in e.errors():
       rprint(f"{error['loc']}: {error['msg']}")
-    raise typer.Abort()
+    raise Abort()
 
 
 @app.command(name="add")
 def add_space(
-  name: str = typer.Argument(
+  name: str = Argument(
     ...,
     help="Name of the new pomodoro space",
   ),
-  focus: Optional[int] = typer.Option(
+  focus: Optional[int] = Option(
     None,
     "--focus",
     help="Focus duration",
   ),
-  short_break: Optional[int] = typer.Option(
+  short_break: Optional[int] = Option(
     None,
     "--short-break",
     help="Short break duration",
   ),
-  long_break: Optional[int] = typer.Option(
+  long_break: Optional[int] = Option(
     None,
     "--long-break",
     help="Long break duration",
   ),
-  sessions: Optional[int] = typer.Option(
+  sessions: Optional[int] = Option(
     None,
     "--sessions",
     help="Sessions before long break",
   ),
-  color: Optional[str] = typer.Option(
+  color: Optional[str] = Option(
     None,
     "--color",
     help="Base color",
@@ -146,6 +174,10 @@ def add_space(
   If options are provided, creates space non-interactively.
   Otherwise, prompts for each value.
   """
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -176,6 +208,8 @@ def _add_space_non_interactive(
   color: Optional[str],
 ) -> dict:
   """Non-interactive space creation with defaults."""
+  from pomopod.core.models import Space
+
   defaults = Space()
 
   return {
@@ -194,14 +228,15 @@ def _add_space_non_interactive(
 
 def _add_space_interactive(name: str) -> dict:
   """Interactive space creation."""
+  from rich import print as rprint
 
   rprint(f'Creating space [bold green]"{name}"[/bold green]:\n')
   rprint("Enter the durations in minutes.")
-  focus = typer.prompt("Focus duration", type=int)
-  short_break = typer.prompt("Short break duration", type=int)
-  long_break = typer.prompt("Long break duration", type=int)
-  sessions = typer.prompt("Sessions", type=int)
-  color = typer.prompt("Color", type=str)
+  focus = prompt("Focus duration", type=int)
+  short_break = prompt("Short break duration", type=int)
+  long_break = prompt("Long break duration", type=int)
+  sessions = prompt("Sessions", type=int)
+  color = prompt("Color", type=str)
 
   return {
     "name": name,
@@ -215,37 +250,37 @@ def _add_space_interactive(name: str) -> dict:
 
 @app.command(name="edit")
 def edit_space(
-  name: str = typer.Argument(
+  name: str = Argument(
     ...,
     help="Name of the pomodoro space",
     autocompletion=complete_spaces,
   ),
-  new_name: str = typer.Option(
+  new_name: str = Option(
     None,
     "--new-name",
     help="New name of the space",
   ),
-  focus: Optional[int] = typer.Option(
+  focus: Optional[int] = Option(
     None,
     "--focus",
     help="Focus duration",
   ),
-  short_break: Optional[int] = typer.Option(
+  short_break: Optional[int] = Option(
     None,
     "--short-break",
     help="Short break duration",
   ),
-  long_break: Optional[int] = typer.Option(
+  long_break: Optional[int] = Option(
     None,
     "--long-break",
     help="Long break duration",
   ),
-  sessions: Optional[int] = typer.Option(
+  sessions: Optional[int] = Option(
     None,
     "--sessions",
     help="Sessions before long break",
   ),
-  color: Optional[str] = typer.Option(
+  color: Optional[str] = Option(
     None,
     "--color",
     help="Base color",
@@ -257,6 +292,10 @@ def edit_space(
   If options are provided, updates only those values.
   Otherwise, shows current values and prompts for new ones.
   """
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -312,16 +351,17 @@ def _edit_space_non_interactive(
 
 def _edit_space_interactive(space: Space) -> dict:
   """Interactive space editing."""
+  from rich import print as rprint
 
   _print_space(space)
 
   rprint("\nEnter the durations in minutes. Leave empty to keep the current value.")
-  name = typer.prompt("Name", default=space.name, type=str)
-  focus = typer.prompt("Focus duration", default=space.focus_duration, type=int)
-  short_break = typer.prompt("Short break duration", default=space.short_break_duration, type=int)
-  long_break = typer.prompt("Long break duration", default=space.long_break_duration, type=int)
-  sessions = typer.prompt("Sessions", default=space.sessions_before_long_break, type=int)
-  color = typer.prompt("Color", default=space.color, type=str)
+  name = prompt("Name", default=space.name, type=str)
+  focus = prompt("Focus duration", default=space.focus_duration, type=int)
+  short_break = prompt("Short break duration", default=space.short_break_duration, type=int)
+  long_break = prompt("Long break duration", default=space.long_break_duration, type=int)
+  sessions = prompt("Sessions", default=space.sessions_before_long_break, type=int)
+  color = prompt("Color", default=space.color, type=str)
 
   return {
     "name": name,
@@ -335,12 +375,12 @@ def _edit_space_interactive(space: Space) -> dict:
 
 @app.command(name="rm")
 def remove_space(
-  name: str = typer.Argument(
+  name: str = Argument(
     ...,
     help="Name of the space to remove",
     autocompletion=complete_spaces,
   ),
-  force: bool = typer.Option(
+  force: bool = Option(
     False,
     "--force",
     "-f",
@@ -348,6 +388,10 @@ def remove_space(
   ),
 ):
   """Remove a pomodoro space."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -363,7 +407,7 @@ def remove_space(
       return
 
     if not force:
-      typer.confirm(f'Delete the "{name}" space?', abort=True)
+      confirm(f'Delete the "{name}" space?', abort=True)
 
     client.remove_space(name)
     rprint(f'Space [bold green]"{name}"[/bold green] removed permanently')
@@ -373,12 +417,12 @@ def remove_space(
 
 @app.command(name="rename")
 def rename_space(
-  name: str = typer.Argument(
+  name: str = Argument(
     ...,
     help="Name of the space to rename",
     autocompletion=complete_spaces,
   ),
-  new_name: Optional[str] = typer.Option(
+  new_name: Optional[str] = Option(
     None,
     "--new-name",
     "-n",
@@ -386,6 +430,10 @@ def rename_space(
   ),
 ):
   """Rename a pomodoro space."""
+  from rich import print as rprint
+
+  from pomopod.client import client
+
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
     return
@@ -396,7 +444,7 @@ def rename_space(
       return
 
     if not new_name:
-      new_name_input = typer.prompt(f'New name for "{name}" space')
+      new_name_input = prompt(f'New name for "{name}" space')
       new_name = str(new_name_input)
 
     if new_name in existing_names:
