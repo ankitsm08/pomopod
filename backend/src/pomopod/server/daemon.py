@@ -4,7 +4,6 @@ from fastapi import Body, FastAPI, HTTPException, Path, Query
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
-from scalar_fastapi import get_scalar_api_reference
 
 from pomopod.core import config
 from pomopod.core import state as state_core
@@ -117,6 +116,8 @@ async def root() -> Health:
   description="Serves the Scalar interactive API documentation interface for exploring and testing endpoints.",
 )
 async def scalar_html():
+  from scalar_fastapi import get_scalar_api_reference
+
   return get_scalar_api_reference(
     openapi_url=app.openapi_url,
   )

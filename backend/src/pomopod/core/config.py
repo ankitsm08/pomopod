@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -36,6 +37,7 @@ def _get_default_config() -> Config:
   return Config()
 
 
+@lru_cache(maxsize=1)
 def _load_config() -> Config:
   """
   Load and return the config file.
@@ -62,10 +64,15 @@ def _load_config() -> Config:
   return config
 
 
+def _invalidate_config_cache():
+  _load_config.cache_clear()
+
+
 def _save_config(config: Config) -> None:
   _ensure_config_dir()
   with open(CONFIG_FILE, "w") as f:
     json.dump(config.model_dump(), f, indent=2)
+  _invalidate_config_cache()
 
 
 def get_spaces() -> dict[str, Space]:
