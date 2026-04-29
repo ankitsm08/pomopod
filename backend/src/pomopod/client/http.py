@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -17,7 +17,16 @@ class HttpPomopodClient(PomopodClient):
   def __init__(self, base_url: str):
     self.client = httpx.Client(base_url=base_url, timeout=5)
 
-  def _handle_response(self, r: httpx.Response, model_class):
+  def close(self):
+    self.client.close()
+
+  def __aenter__(self):
+    return self
+
+  def __aexit__(self, _exc_type, _exc, _tb):
+    self.close()
+
+  def _handle_response(self, r: httpx.Response, model_class) -> Any:
     if r.status_code >= 400:
       raise PomopodClientError(r.status_code, r.text)
     data = r.json()
