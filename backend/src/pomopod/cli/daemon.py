@@ -40,7 +40,9 @@ def run_daemon():
   """Start the background daemon."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
   from pomopod.core import config
 
   if client.is_running():

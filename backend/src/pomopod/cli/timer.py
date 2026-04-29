@@ -14,7 +14,9 @@ def start_timer():
   """Start the pomodoro timer."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -32,7 +34,9 @@ def pause_timer():
   """Pause the timer."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
@@ -50,7 +54,9 @@ def resume_timer():
   """Resume the timer."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
@@ -68,7 +74,9 @@ def pause_resume_timer():
   """Toggle pause/resume the timer."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
@@ -89,7 +97,9 @@ def stop_timer():
   """Stop and reset the timer."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
@@ -109,7 +119,9 @@ def show_status():
   from rich.console import Console
   from rich.table import Table
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -147,7 +159,9 @@ def reset_time():
   """Reset the timer for current session."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")
@@ -165,7 +179,9 @@ def reset_session_count():
   """Reset the session count for current space."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running.[/red]")

@@ -16,7 +16,9 @@ def init_configuration():
   """Initializes pomopod configuration with default values."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -35,7 +37,9 @@ def show_configuration():
   from rich.console import Console
   from rich.table import Table
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -78,7 +82,9 @@ def set_daemon_settings(
   """Set daemon settings."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -102,7 +108,9 @@ def set_notification_settings(
   """Toggle notification settings."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
