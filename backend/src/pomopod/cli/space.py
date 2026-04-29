@@ -17,7 +17,9 @@ app = Typer(
 
 
 def complete_spaces(incomplete: str) -> list[str]:
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     return []
@@ -34,7 +36,9 @@ def list_spaces():
   from rich.console import Console
   from rich.table import Table
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -85,7 +89,9 @@ def show_active_space():
   """Show the active pomodoro space details."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -108,7 +114,9 @@ def set_space(
   """Set the active pomodoro space."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -176,7 +184,9 @@ def add_space(
   """
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -294,7 +304,9 @@ def edit_space(
   """
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -390,7 +402,9 @@ def remove_space(
   """Remove a pomodoro space."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
@@ -432,7 +446,9 @@ def rename_space(
   """Rename a pomodoro space."""
   from rich import print as rprint
 
-  from pomopod.client import client
+  from pomopod.client import get_client_sync
+
+  client = get_client_sync()
 
   if not client.is_running():
     rprint("[red]Daemon not running. Run 'pomopod daemon run' first.[/red]")
