@@ -1,0 +1,28 @@
+Tabs {
+  dock: top;
+}
+
+Tab {
+  width: 1fr;
+}
+
+Header {
+  dock: top;
+}
+
+Footer {
+  dock: bottom;
+}
+
+Screen {
+  align: center middle;
+}
+
+Container {
+  align: center middle;
+}
+
+Digits {
+  width: auto;
+  text-style: bold;
+}

@@ -21,3 +21,10 @@ def startup():
 
 for typer in [timer, daemon, space, config, room]:
   app.add_typer(typer)
+
+
+@app.command(name="tui", help="Launch pomopod TUI")
+def tui():
+  from pomopod.tui import app
+
+  app()

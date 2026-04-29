@@ -12,6 +12,7 @@ dependencies = [
   "requests>=2.33.1",
   "rich>=14.3.3",
   "scalar-fastapi>=1.8.2",
+  "textual>=8.2.4",
   "typer>=0.24.1",
   "uvicorn>=0.44.0",
   "websockets>=16.0",
