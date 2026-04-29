@@ -29,6 +29,7 @@ class HttpPomopodClient(PomopodClient):
   def _handle_response(self, r: httpx.Response, model_class) -> Any:
     if r.status_code >= 400:
       raise PomopodClientError(r.status_code, r.text)
+
     data = r.json()
 
     # pydantic models
