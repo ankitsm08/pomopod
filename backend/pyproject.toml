@@ -26,3 +26,11 @@ package = true
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["pomopod*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+indent-style = "space"
+indent-width = 2
+quote-style = "double"
