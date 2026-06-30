@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -26,15 +26,17 @@ class AsyncHttpPomopodClient(PomopodClient):
   async def __aexit__(self, _exc_type, _exc, _tb):
     await self.close()
 
-  def _handle_response(self, r: httpx.Response, model_class):
+  def _handle_response(self, r: httpx.Response, model_class) -> Any:
     if r.status_code >= 400:
       raise PomopodClientError(r.status_code, r.text)
 
     data = r.json()
 
+    # pydantic models
     if hasattr(model_class, "model_validate"):
       return model_class.model_validate(data)
 
+    # generic types
     return data
 
   async def is_running(self) -> bool:
