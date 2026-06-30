@@ -46,7 +46,7 @@ def list_spaces():
   try:
     spaces = client.list_spaces()
 
-    headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Color")
+    headers = ("Name", "Focus", "Short Break", "Long Break", "Sessions", "Icon")
     table = Table(*headers, title="Spaces")
 
     for name, space in spaces.items():
@@ -56,7 +56,7 @@ def list_spaces():
         str(space.short_break_duration),
         str(space.long_break_duration),
         str(space.sessions_before_long_break),
-        str(space.color),
+        str(space.icon),
       )
 
     console = Console()
@@ -78,7 +78,7 @@ def _print_space(space: Space):
   table.add_row("Short Break", str(space.short_break_duration))
   table.add_row("Long Break", str(space.long_break_duration))
   table.add_row("Sessoins", str(space.sessions_before_long_break))
-  table.add_row("Color", space.color)
+  table.add_row("Icon", space.icon)
 
   console = Console()
   console.print(table)
@@ -170,10 +170,10 @@ def add_space(
     "--sessions",
     help="Sessions before long break",
   ),
-  color: Optional[str] = Option(
+  icon: Optional[str] = Option(
     None,
-    "--color",
-    help="Base color",
+    "--icon",
+    help="Base icon",
   ),
 ):
   """
@@ -197,8 +197,8 @@ def add_space(
       rprint(f'Space [bold red]"{name}"[/bold red] already exists')
       return
 
-    if any(v is not None for v in [focus, short_break, long_break, sessions, color]):
-      space_dict = _add_space_non_interactive(name, focus, short_break, long_break, sessions, color)
+    if any(v is not None for v in [focus, short_break, long_break, sessions, icon]):
+      space_dict = _add_space_non_interactive(name, focus, short_break, long_break, sessions, icon)
     else:
       space_dict = _add_space_interactive(name)
 
@@ -215,7 +215,7 @@ def _add_space_non_interactive(
   short_break: Optional[int],
   long_break: Optional[int],
   sessions: Optional[int],
-  color: Optional[str],
+  icon: Optional[str],
 ) -> dict:
   """Non-interactive space creation with defaults."""
   from pomopod.core.models import Space
@@ -232,7 +232,7 @@ def _add_space_non_interactive(
     "sessions_before_long_break": (
       sessions if sessions is not None else defaults.sessions_before_long_break
     ),
-    "color": (color if color is not None else defaults.color),
+    "icon": (icon if icon is not None else defaults.icon),
   }
 
 
@@ -246,7 +246,7 @@ def _add_space_interactive(name: str) -> dict:
   short_break = prompt("Short break duration", type=int)
   long_break = prompt("Long break duration", type=int)
   sessions = prompt("Sessions", type=int)
-  color = prompt("Color", type=str)
+  icon = prompt("Icon", type=str)
 
   return {
     "name": name,
@@ -254,7 +254,7 @@ def _add_space_interactive(name: str) -> dict:
     "short_break_duration": short_break,
     "long_break_duration": long_break,
     "sessions_before_long_break": sessions,
-    "color": color,
+    "icon": icon,
   }
 
 
@@ -290,10 +290,10 @@ def edit_space(
     "--sessions",
     help="Sessions before long break",
   ),
-  color: Optional[str] = Option(
+  icon: Optional[str] = Option(
     None,
-    "--color",
-    help="Base color",
+    "--icon",
+    help="Space icon",
   ),
 ):
   """
@@ -322,9 +322,9 @@ def edit_space(
 
     space = client.get_space(name)
 
-    if any(v is not None for v in [new_name, focus, short_break, long_break, sessions, color]):
+    if any(v is not None for v in [new_name, focus, short_break, long_break, sessions, icon]):
       space_dict = _edit_space_non_interactive(
-        space, new_name, focus, short_break, long_break, sessions, color
+        space, new_name, focus, short_break, long_break, sessions, icon
       )
     else:
       space_dict = _edit_space_interactive(space)
@@ -343,7 +343,7 @@ def _edit_space_non_interactive(
   short_break: Optional[int],
   long_break: Optional[int],
   sessions: Optional[int],
-  color: Optional[str],
+  icon: Optional[str],
 ) -> dict:
   """Non-interactive space creation with defaults."""
 
@@ -357,7 +357,7 @@ def _edit_space_non_interactive(
     "sessions_before_long_break": (
       sessions if sessions is not None else space.sessions_before_long_break
     ),
-    "color": (color if color is not None else space.color),
+    "icon": (icon if icon is not None else space.icon),
   }
 
 
@@ -373,7 +373,7 @@ def _edit_space_interactive(space: Space) -> dict:
   short_break = prompt("Short break duration", default=space.short_break_duration, type=int)
   long_break = prompt("Long break duration", default=space.long_break_duration, type=int)
   sessions = prompt("Sessions", default=space.sessions_before_long_break, type=int)
-  color = prompt("Color", default=space.color, type=str)
+  icon = prompt("Icon", default=space.icon, type=str)
 
   return {
     "name": name,
@@ -381,7 +381,7 @@ def _edit_space_interactive(space: Space) -> dict:
     "short_break_duration": short_break,
     "long_break_duration": long_break,
     "sessions_before_long_break": sessions,
-    "color": color,
+    "icon": icon,
   }
 
 

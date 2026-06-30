@@ -11,40 +11,6 @@ class Health(BaseModel):
   status: str
 
 
-class CatppuccinColor(str, Enum):
-  ROSEWATER = "rosewater"
-  FLAMINGO = "flamingo"
-  PINK = "pink"
-  MAUVE = "mauve"
-  RED = "red"
-  MAROON = "maroon"
-  PEACH = "peach"
-  YELLOW = "yellow"
-  GREEN = "green"
-  TEAL = "teal"
-  SKY = "sky"
-  SAPPHIRE = "sapphire"
-  BLUE = "blue"
-  LAVENDER = "lavender"
-
-
-def validate_color(v: str) -> str:
-  v = v.lower().strip()
-
-  if v in CatppuccinColor.__members__.values():
-    return v
-
-  if v.startswith("#"):
-    hex = v[1:]
-    if len(hex) in (3, 6) and all(c in "0123456789abcdef" for c in hex):
-      return v
-
-  raise ValueError(f"Invalid color: {v}. Use Catppuccin colors or #RRGGBB")
-
-
-ValidatedColor = Annotated[str, BeforeValidator(validate_color)]
-
-
 class Space(BaseModel):
   name: str = Field(default=DEFAULT_ACTIVE_SPACE, description="Name of the space")
   focus_duration: int = Field(default=25, ge=1, le=600, description="Focus duration in minutes")
@@ -55,7 +21,7 @@ class Space(BaseModel):
     default=4, ge=1, le=25, description="Sessions before long break"
   )
 
-  color: ValidatedColor = Field(default=CatppuccinColor.ROSEWATER, description="Color")
+  icon: str = Field(default="", min_length=1, max_length=1, description="Icon")
 
   model_config = {
     "str_strip_whitespace": True,
